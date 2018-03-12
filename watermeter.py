@@ -19,8 +19,8 @@ def intersection(L1, L2):
     Dx = L1[2] * L2[1] - L1[1] * L2[2]
     Dy = L1[0] * L2[2] - L1[2] * L2[0]
     if D != 0:
-        x = Dx / D
-        y = Dy / D
+        x = Dx // D
+        y = Dy // D
         return x, y
     else:
         return False
@@ -160,7 +160,7 @@ def findAngle(img, redimg, center, width):
         percent = (450 - deg) / 360
 
     string = "%d%%" % math.trunc(percent * 100)
-    cv2.putText(img, string, (center[0] - width/5, center[1] - width/3),
+    cv2.putText(img, string, (center[0] - width//5, center[1] - width//3),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7,
                 (255, 255, 255), 2)
 
@@ -216,7 +216,7 @@ ylen = fromleft[2][1] - fromleft[0][1]
 rad = math.atan2(ylen, xlen)
 deg = math.degrees(rad)
 
-image_center = tuple(np.array(image.shape)[:2]/2)
+image_center = tuple(np.array(image.shape)[:2]//2)
 rot_mat = cv2.getRotationMatrix2D(image_center, deg, 1)
 image = cv2.warpAffine(image, rot_mat, image.shape[:2], flags=cv2.INTER_LINEAR)
 red = cv2.warpAffine(red, rot_mat, image.shape[:2], flags=cv2.INTER_LINEAR)
@@ -243,7 +243,7 @@ liter = ((angles[3] / 10) * 100 +
 
 string = "%.2f liter" % liter
 cv2.putText(image, string,
-            (image_center[0]/2, image_center[1]),
+            (image_center[0]//2, image_center[1]),
             cv2.FONT_HERSHEY_SIMPLEX, 2,
             (255, 255, 255), 5)
 
