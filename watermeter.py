@@ -74,13 +74,11 @@ def findCircles(img):
     if circles is not None:
         numcirc = len(circles[0, :])
 
-        index = 0
         for i in circles[0, :]:
             # draw the outer circle
             cv2.circle(image, (i[0], i[1]), i[2], (0, 255, 0), 2)
             # draw the center of the circle
             dials.append([i[0], i[1], i[2]])
-            index += 1
 
     if numcirc != 4:
         print("%d circles found but expected 4!" % numcirc)
@@ -167,90 +165,91 @@ def findAngle(img, redimg, center, width):
     return math.trunc(percent * 100)
 
 
-parser = argparse.ArgumentParser()
-parser.add_argument('-s', '--show',
-                    action='store_true',
-                    help='Show processed image')
-parser.add_argument('-e', '--show-error',
-                    action='store_true',
-                    help='Show image in case of error')
-parser.add_argument('-c', '--camera',
-                    action='store_true',
-                    help='Read image from attached camera')
-parser.add_argument('file', nargs='?',
-                    help='Read image from this file')
-args = parser.parse_args()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-s', '--show',
+                        action='store_true',
+                        help='Show processed image')
+    parser.add_argument('-e', '--show-error',
+                        action='store_true',
+                        help='Show image in case of error')
+    parser.add_argument('-c', '--camera',
+                        action='store_true',
+                        help='Read image from attached camera')
+    parser.add_argument('file', nargs='?',
+                        help='Read image from this file')
+    args = parser.parse_args()
 
-if args.camera:
-    # Take a picture using webcam
-    cam = cv2.VideoCapture(0)
-    ret, frame = cam.read()
-    cam.release()
-    if ret:
-        image = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
+    if args.camera:
+        # Take a picture using webcam
+        cam = cv2.VideoCapture(0)
+        ret, frame = cam.read()
+        cam.release()
+        if ret:
+            image = cv2.cvtColor(frame, cv2.COLOR_BGR2BGRA)
+        else:
+            print("Failed to read webcam image!")
+            exit(0)
+    elif args.file:
+        image = cv2.imread(args.file)
     else:
-        print("Failed to read webcam image!")
+        parser.print_help()
         exit(0)
-elif args.file:
-    image = cv2.imread(args.file)
-else:
-    parser.print_help()
-    exit(0)
 
-height, width, channels = image.shape
-if width > 1500 or width < 600:
-    scale = 1000.0 / width
-    print("Image is %dx%d, resizing to %dx%d") % (width,
-                                                  height,
-                                                  width * scale,
-                                                  height * scale)
-    scaled = cv2.resize(image, (0, 0), fx=scale, fy=scale)
-    image = scaled
+    height, width, channels = image.shape
+    if width > 1500 or width < 600:
+        scale = 1000.0 / width
+        print("Image is %dx%d, resizing to %dx%d") % (width,
+                                                      height,
+                                                      width * scale,
+                                                      height * scale)
+        scaled = cv2.resize(image, (0, 0), fx=scale, fy=scale)
+        image = scaled
 
-red = findRed(image)
-fromleft = findCircles(red)
+    red = findRed(image)
+    fromleft = findCircles(red)
 
-# rotate image so dial 1 and 3 are level
-xlen = fromleft[2][0] - fromleft[0][0]
-ylen = fromleft[2][1] - fromleft[0][1]
-rad = math.atan2(ylen, xlen)
-deg = math.degrees(rad)
+    # rotate image so dial 1 and 3 are level
+    xlen = fromleft[2][0] - fromleft[0][0]
+    ylen = fromleft[2][1] - fromleft[0][1]
+    rad = math.atan2(ylen, xlen)
+    deg = math.degrees(rad)
 
-image_center = tuple(np.array(image.shape)[:2]//2)
-rot_mat = cv2.getRotationMatrix2D(image_center, deg, 1)
-image = cv2.warpAffine(image, rot_mat, image.shape[:2], flags=cv2.INTER_LINEAR)
-red = cv2.warpAffine(red, rot_mat, image.shape[:2], flags=cv2.INTER_LINEAR)
+    image_center = tuple(np.array(image.shape)[:2]//2)
+    rot_mat = cv2.getRotationMatrix2D(image_center, deg, 1)
+    image = cv2.warpAffine(image, rot_mat, image.shape[:2],
+                           flags=cv2.INTER_LINEAR)
+    red = cv2.warpAffine(red, rot_mat, image.shape[:2], flags=cv2.INTER_LINEAR)
 
-# find dials again in rotated image
-fromleft = findCircles(red)
-angles = []
+    # find dials again in rotated image
+    fromleft = findCircles(red)
+    angles = []
 
-for d in fromleft:
-    ulx = int(d[0])
-    uly = int(d[1])
-    radius = int(d[2])*3
-    cut = image[uly-radius: uly+radius,
-                ulx-radius: ulx+radius]
-    redcut = red[uly-radius: uly+radius,
-                 ulx-radius: ulx+radius]
-    val = findAngle(cut, redcut, (radius, radius), radius*2)
-    angles.append(val)
+    for d in fromleft:
+        ulx = int(d[0])
+        uly = int(d[1])
+        radius = int(d[2])*3
+        cut = image[uly-radius: uly+radius,
+                    ulx-radius: ulx+radius]
+        redcut = red[uly-radius: uly+radius,
+                     ulx-radius: ulx+radius]
+        val = findAngle(cut, redcut, (radius, radius), radius*2)
+        angles.append(val)
 
-liter = ((angles[3] / 10) * 100 +
-         (angles[2] / 10) * 10 +
-         (angles[1] / 10) +
-         float(angles[0]) / 100)
+    liter = ((angles[3] / 10) * 100 +
+             (angles[2] / 10) * 10 +
+             (angles[1] / 10) +
+             float(angles[0]) / 100)
 
-string = "%.2f liter" % liter
-cv2.putText(image, string,
-            (image_center[0]//2, image_center[1]),
-            cv2.FONT_HERSHEY_SIMPLEX, 2,
-            (255, 255, 255), 5)
+    string = "%.2f liter" % liter
+    cv2.putText(image, string,
+                (image_center[0]//2, image_center[1]),
+                cv2.FONT_HERSHEY_SIMPLEX, 2,
+                (255, 255, 255), 5)
 
+    if args.show:
+        cv2.imshow('image', image)
+        cv2.waitKey()
+        cv2.destroyAllWindows()
 
-if args.show:
-    cv2.imshow('image', image)
-    cv2.waitKey()
-    cv2.destroyAllWindows()
-
-print("%.2f liter" % liter)
+    print("%.2f liter" % liter)
