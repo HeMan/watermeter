@@ -199,10 +199,10 @@ if __name__ == "__main__":
     height, width, channels = image.shape
     if width > 1500 or width < 600:
         scale = 1000.0 / width
-        print("Image is %dx%d, resizing to %dx%d") % (width,
-                                                      height,
-                                                      width * scale,
-                                                      height * scale)
+        print("Image is %dx%d, resizing to %dx%d" % (width,
+                                                     height,
+                                                     width * scale,
+                                                     height * scale))
         scaled = cv2.resize(image, (0, 0), fx=scale, fy=scale)
         image = scaled
 
